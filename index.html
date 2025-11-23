@@ -1,83 +1,18 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>???</title>
-  <style>
-    body {
-      margin: 0;
-      background: #0d0d0d;
-      color: #e2e2e2;
-      font-family: "Arial", sans-serif;
-      overflow-x: hidden;
-    }
-
-    /* 데스크탑 우선 */
-    .container {
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
-
-    /* 고어 분위기: 글리치 + 칼자국 느낌 */
-    h1 {
-      font-size: 4rem;
-      letter-spacing: 4px;
-      color: #ff3b3b;
-      text-shadow: 2px 2px 8px rgba(255, 0, 0, 0.6);
-      position: relative;
-      animation: glitch 2s infinite;
-    }
-
-    @keyframes glitch {
-      0% { transform: translate(0); }
-      20% { transform: translate(-2px, 2px); }
-      40% { transform: translate(2px, -2px); }
-      60% { transform: translate(-2px, -1px); }
-      80% { transform: translate(1px, 1px); }
-      100% { transform: translate(0); }
-    }
-
-    /* 바닥에 피 웅덩이 느낌 */
-    .blood {
-      position: absolute;
-      bottom: 0;
-      width: 100%;
-      height: 200px;
-      background: radial-gradient(circle at 50% 0%, rgba(255,0,0,0.5), rgba(150,0,0,0.8));
-      filter: blur(20px);
-    }
-
-    p {
-      margin-top: 10px;
-      color: #b8b8b8;
-      opacity: 0.7;
-      font-size: 1.1rem;
-    }
-
-    .noise {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      background: url('https://www.transparenttextures.com/patterns/asfalt-light.png');
-      opacity: 0.07;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gun-Shop Total Shooter</title>
+<style>
+  body { margin:0; background:#0a0a0a; color:white; text-align:center; font-family:sans-serif; }
+  canvas { display:block; margin:0 auto; background:#111; }
+  h1 { margin: 20px; }
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>YOU SHOULDN'T BE HERE</h1>
-    <p>아무도 모르는 사이트. 아무도 설명하지 않는다.</p>
-    <div class="blood"></div>
-  </div>
-  <div class="noise"></div>
+<h1>Gun-Shop Total Shooter</h1>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<script src="game.js"></script>
 </body>
 </html>
