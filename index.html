@@ -16,3 +16,688 @@
 <script src="game.js"></script>
 </body>
 </html>
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creepy Story + Drawing Board + Chat</title>
+<style>
+body {
+  margin:0; padding:0;
+  background:#0a0a0a;
+  font-family:'Courier New', monospace;
+  overflow:hidden;
+  height:100vh;
+  color:#fff;
+  transition: background 0.1s;
+  cursor: none;
+  touch-action: none;
+}
+#startScreen {
+  position:absolute; top:0; left:0;
+  width:100%; height:100%;
+  background:#111;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  font-size:2em;
+  z-index:300;
+}
+#startScreen button {
+  padding:15px 30px;
+  font-size:1em;
+  margin-top:20px;
+  cursor:pointer;
+  background:#444; color:#fff; border:none; border-radius:10px;
+}
+.character { position:absolute; width:120px; cursor:pointer; transition: transform 0.2s; z-index:100;}
+.character:hover { transform: scale(1.2); }
+#dialogue {
+  position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+  background:rgba(20,20,20,0.95); padding:15px 20px;
+  border-radius:10px; max-width:500px; display:none; z-index:100;
+}
+.choice-btn {
+  display:block; margin:5px 0; padding:5px 10px;
+  background:#444; border:none; color:#fff; cursor:pointer; border-radius:5px;
+}
+.choice-btn:hover { background:#666; }
+.eye { position:absolute; width:80px; height:80px; pointer-events:none; transition: transform 0.05s linear; opacity:0.9; z-index:50;}
+#follower { 
+  position:absolute; 
+  width:80px; height:80px; 
+  pointer-events:none; 
+  transition: transform 0.1s ease-out; 
+  z-index:90;
+  left: 0;
+  top: 0;
+}
+#pixelCanvas { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1;}
+#endingScreen {
+  display:none; 
+  position:absolute; 
+  top:0; left:0; 
+  width:100%; height:100%;
+  background-size:cover; 
+  background-position:center; 
+  z-index:200;
+  justify-content:center; 
+  align-items:center; 
+  flex-direction:column;
+  color:#ff6666; 
+  font-size:3em; 
+  text-shadow: 2px 2px 5px #000;
+}
+#drawCanvas {
+  display:none; 
+  position:absolute; 
+  top:0; left:0; 
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.8); 
+  z-index:150; 
+  cursor:crosshair;
+  touch-action: none;
+}
+#restartBtn, #finishDrawingBtn {
+  padding:15px 30px;
+  font-size:0.5em;
+  margin-top:20px;
+  cursor:pointer;
+  background:#444; color:#fff; border:none; border-radius:10px;
+}
+#drawControls {
+  position:absolute;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:160;
+  display:none;
+  background:rgba(0,0,0,0.7);
+  padding:10px;
+  border-radius:10px;
+}
+
+/* Chat Styles */
+#chatContainer {
+  position:fixed;
+  top:10px;
+  right:10px;
+  width:300px;
+  height:400px;
+  background:rgba(0,0,0,0.8);
+  border:1px solid #333;
+  border-radius:10px;
+  z-index:250;
+  display:flex;
+  flex-direction:column;
+  backdrop-filter: blur(5px);
+}
+#chatHeader {
+  background:rgba(51,51,51,0.9);
+  padding:10px;
+  border-radius:10px 10px 0 0;
+  cursor:move;
+  font-weight:bold;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+#chatMessages {
+  flex:1;
+  overflow-y:auto;
+  padding:10px;
+  font-size:0.9em;
+}
+.chat-message {
+  margin-bottom:8px;
+  padding:5px;
+  border-radius:5px;
+  background:rgba(255,255,255,0.1);
+  word-wrap:break-word;
+}
+.chat-message .user {
+  font-weight:bold;
+  color:#ff6666;
+  margin-right:5px;
+}
+.chat-message .time {
+  font-size:0.7em;
+  color:#888;
+  margin-left:5px;
+}
+#chatInputContainer {
+  padding:10px;
+  border-top:1px solid #333;
+  display:flex;
+}
+#chatInput {
+  flex:1;
+  padding:8px;
+  background:#222;
+  border:1px solid #333;
+  border-radius:5px;
+  color:#fff;
+  font-family:'Courier New', monospace;
+}
+#chatSend {
+  padding:8px 15px;
+  margin-left:5px;
+  background:#444;
+  border:none;
+  border-radius:5px;
+  color:#fff;
+  cursor:pointer;
+}
+#toggleChat {
+  position:fixed;
+  top:10px;
+  right:10px;
+  padding:8px 15px;
+  background:rgba(0,0,0,0.8);
+  border:1px solid #333;
+  border-radius:5px;
+  color:#fff;
+  cursor:pointer;
+  z-index:249;
+}
+
+.typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background-color: #fff;
+  margin-left: 2px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  #dialogue {
+    font-size: 0.8em;
+    max-width: 90%;
+    bottom: 10px;
+  }
+  .character {
+    width: 80px;
+  }
+  #follower, .eye {
+    width: 50px;
+    height: 50px;
+  }
+  #endingScreen {
+    font-size: 2em;
+    text-align: center;
+    padding: 20px;
+  }
+  #chatContainer {
+    width: 250px;
+    height: 300px;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Start Screen -->
+<div id="startScreen">
+  Welcome to the Creepy World. Would you like to begin?
+  <button id="startBtn">Yes</button>
+</div>
+
+<!-- Character -->
+<img src="https://i.pinimg.com/originals/be/b5/ea/beb5ea94a69fe47b9c11e8be471fa358.jpg" class="character" id="skinfracture" style="top:100px; left:200px; display:none;" alt="Skinfracture">
+
+<div id="dialogue"></div>
+
+<!-- Eye Images -->
+<img src="https://th.bing.com/th/id/OIP.wVayDMkk0NSwQOoBIFRzFgHaGS?w=203&h=180&c=7&r=0&o=7&pid=1.7&rm=3" class="eye">
+<img src="https://th.bing.com/th/id/OIP.NFX33A1fNG5thwfx9LrjuwHaEr?w=277&h=180&c=7&r=0&o=7&pid=1.7&rm=3" class="eye">
+
+<!-- Mouse Follower Pet -->
+<img id="follower" src="https://th.bing.com/th/id/OIP.hO7yEvdPMrjCawk5lJoBLwHaIK?w=159&h=180&c=7&r=0&o=7&pid=1.7&rm=3">
+
+<!-- Pixel Canvas -->
+<canvas id="pixelCanvas"></canvas>
+
+<!-- Drawing Canvas -->
+<canvas id="drawCanvas"></canvas>
+
+<!-- Drawing Controls -->
+<div id="drawControls">
+  <button id="finishDrawingBtn">Finish Drawing</button>
+</div>
+
+<!-- Chat Container -->
+<button id="toggleChat">💬 Chat</button>
+<div id="chatContainer" style="display:none;">
+  <div id="chatHeader">
+    <span>Visitor Chat</span>
+    <button id="closeChat" style="background:none; border:none; color:#fff; cursor:pointer;">✕</button>
+  </div>
+  <div id="chatMessages"></div>
+  <div id="chatInputContainer">
+    <input type="text" id="chatInput" placeholder="Type a message...">
+    <button id="chatSend">Send</button>
+  </div>
+</div>
+
+<!-- Ending Screen -->
+<div id="endingScreen" style="background-image:url('https://i.pinimg.com/736x/48/e8/78/48e878c8235324ce7c4bbbb310253889.jpg');">
+  How is your life going?
+  <button id="restartBtn">Start Over</button>
+</div>
+
+<script>
+// Simple Chat Class
+class SimpleChat {
+  constructor() {
+    this.messages = JSON.parse(localStorage.getItem('ghost_chat_messages')) || [];
+    this.maxMessages = 50;
+    this.userId = this.generateUserId();
+  }
+  
+  generateUserId() {
+    let userId = localStorage.getItem('ghost_chat_userId');
+    if (!userId) {
+      userId = 'User_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('ghost_chat_userId', userId);
+    }
+    return userId;
+  }
+  
+  getUserName() {
+    return this.userId;
+  }
+  
+  addMessage(text) {
+    const message = {
+      id: Date.now(),
+      user: this.getUserName(),
+      text: text,
+      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    this.messages.push(message);
+    
+    if (this.messages.length > this.maxMessages) {
+      this.messages = this.messages.slice(-this.maxMessages);
+    }
+    
+    localStorage.setItem('ghost_chat_messages', JSON.stringify(this.messages));
+    this.onMessageCallback && this.onMessageCallback(message);
+    
+    return message;
+  }
+  
+  getAllMessages() {
+    return this.messages;
+  }
+  
+  onMessage(callback) {
+    this.onMessageCallback = callback;
+  }
+  
+  startPolling() {
+    setInterval(() => {
+      const stored = JSON.parse(localStorage.getItem('ghost_chat_messages')) || [];
+      if (stored.length !== this.messages.length) {
+        this.messages = stored;
+        this.renderAllMessages();
+      }
+    }, 2000);
+  }
+  
+  renderAllMessages() {
+    if (this.renderCallback) {
+      this.renderCallback(this.messages);
+    }
+  }
+  
+  onRender(callback) {
+    this.renderCallback = callback;
+  }
+}
+
+// Typing Effect Function
+function typeText(element, text, speed = 30, callback = null) {
+  let i = 0;
+  element.innerHTML = '';
+  
+  function type() {
+    if (i < text.length) {
+      element.innerHTML += text.charAt(i);
+      i++;
+      setTimeout(type, speed);
+    } else {
+      // Remove cursor when typing is complete
+      const cursor = element.querySelector('.typing-cursor');
+      if (cursor) {
+        cursor.remove();
+      }
+      if (callback) callback();
+    }
+  }
+  
+  // Add blinking cursor
+  const cursor = document.createElement('span');
+  cursor.className = 'typing-cursor';
+  element.appendChild(cursor);
+  
+  type();
+}
+
+const chat = new SimpleChat();
+
+const startBtn = document.getElementById('startBtn');
+const restartBtn = document.getElementById('restartBtn');
+const finishDrawingBtn = document.getElementById('finishDrawingBtn');
+const startScreen = document.getElementById('startScreen');
+const dialogue = document.getElementById('dialogue');
+const eyes = document.querySelectorAll('.eye');
+const follower = document.getElementById('follower');
+const endingScreen = document.getElementById('endingScreen');
+const drawCanvas = document.getElementById('drawCanvas');
+const drawControls = document.getElementById('drawControls');
+const drawCtx = drawCanvas.getContext('2d');
+drawCanvas.width = window.innerWidth; drawCanvas.height = window.innerHeight;
+const pixelCanvas = document.getElementById('pixelCanvas');
+const pixelCtx = pixelCanvas.getContext('2d');
+pixelCanvas.width = window.innerWidth; pixelCanvas.height = window.innerHeight;
+
+// Chat elements
+const toggleChat = document.getElementById('toggleChat');
+const chatContainer = document.getElementById('chatContainer');
+const closeChat = document.getElementById('closeChat');
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const chatSend = document.getElementById('chatSend');
+
+// Story JSON (English)
+const story = {
+  skinfracture:{text:"I'm Skinfracture. Want to go on a creepy adventure today?", choices:[
+    {text:"Yes, let's start", next:"adventure1"},
+    {text:"I want to draw for you", next:"drawStory"},
+    {text:"I'm a little scared", next:"scared1"}
+  ]},
+  adventure1:{text:"Great! The eyes in the room are watching you. What will you do?", choices:[
+    {text:"Talk to the eyes", next:"talkEyes"},
+    {text:"Continue adventure", next:"deepAdventure"},
+    {text:"Go back", next:"endStory"}
+  ]},
+  drawStory:{text:"Awesome! Draw a picture for Skinfracture.", choices:[
+    {text:"Start drawing", next:"drawCanvasScreen"}
+  ]},
+  drawCanvasScreen:{text:"", choices:[]},
+  scared1:{text:"Hmph, I knew you'd be scared.", choices:[
+    {text:"Gather courage", next:"adventure1"},
+    {text:"Run away", next:"endStory"}
+  ]},
+  talkEyes:{text:"The eyes blink and respond... \"Come closer\"", choices:[
+    {text:"Go deeper", next:"deepAdventure"},
+    {text:"Get out", next:"endStory"}
+  ]},
+  deepAdventure:{text:"The room grows darker, and creepy shadows surround you.", choices:[
+    {text:"Keep moving forward", next:"endStory"},
+    {text:"Turn back", next:"endStory"}
+  ]},
+  endStory:{text:"", choices:[]}
+};
+
+// Events
+startBtn.onclick = ()=>{
+  startScreen.style.display="none";
+  startGame();
+};
+
+restartBtn.onclick = ()=>{
+  endingScreen.style.display="none";
+  startScreen.style.display="flex";
+  resetGame();
+};
+
+finishDrawingBtn.onclick = ()=>{
+  drawCanvas.style.display="none";
+  drawControls.style.display="none";
+  startStory('endStory');
+};
+
+// Chat events
+toggleChat.onclick = () => {
+  chatContainer.style.display = chatContainer.style.display === 'none' ? 'flex' : 'none';
+};
+
+closeChat.onclick = () => {
+  chatContainer.style.display = 'none';
+};
+
+chatSend.onclick = sendMessage;
+chatInput.onkeypress = (e) => {
+  if (e.key === 'Enter') {
+    sendMessage();
+  }
+};
+
+function sendMessage() {
+  const message = chatInput.value.trim();
+  if (message) {
+    chat.addMessage(message);
+    chatInput.value = '';
+    chatInput.focus();
+  }
+}
+
+// Chat message rendering
+function renderMessage(message) {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'chat-message';
+  messageDiv.innerHTML = `
+    <span class="user">${message.user}:</span>
+    <span class="text">${message.text}</span>
+    <span class="time">${message.time}</span>
+  `;
+  chatMessages.appendChild(messageDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function renderAllMessages(messages) {
+  chatMessages.innerHTML = '';
+  messages.forEach(renderMessage);
+}
+
+// Chat initialization
+chat.onMessage(renderMessage);
+chat.onRender(renderAllMessages);
+chat.startPolling();
+renderAllMessages(chat.getAllMessages());
+
+function resetGame() {
+  dialogue.style.display="none";
+  document.getElementById('skinfracture').style.display="none";
+  drawCanvas.style.display="none";
+  drawControls.style.display="none";
+  drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+}
+
+function startGame(){
+  document.getElementById('skinfracture').style.display="block";
+  dialogue.style.display="block";
+  startStory('skinfracture');
+}
+
+// Story progression with typing effect
+function startStory(key){
+  if(key==="endStory"){
+    dialogue.style.display="none";
+    drawCanvas.style.display="none";
+    drawControls.style.display="none";
+    document.getElementById('skinfracture').style.display="none";
+    endingScreen.style.display="flex";
+    return;
+  }
+  if(key==="drawCanvasScreen"){
+    dialogue.style.display="none";
+    drawCanvas.style.display="block";
+    drawControls.style.display="block";
+    enableDrawing();
+    return;
+  }
+  const node = story[key];
+  
+  // Clear dialogue and show typing effect
+  dialogue.innerHTML = '';
+  typeText(dialogue, node.text, 30, () => {
+    // After typing is complete, show choices
+    node.choices.forEach(c=>{
+      const btn = document.createElement('button');
+      btn.classList.add('choice-btn');
+      btn.innerText = c.text;
+      btn.onclick = ()=>{ 
+        dialogue.innerHTML=""; 
+        startStory(c.next);
+      }
+      dialogue.appendChild(btn);
+    });
+  });
+}
+
+// Mouse follower and eyes
+document.addEventListener('mousemove',(e)=>{
+  follower.style.left = (e.clientX - 40) + 'px';
+  follower.style.top = (e.clientY - 40) + 'px';
+  
+  eyes.forEach(eye=>{
+    const rect = eye.getBoundingClientRect();
+    const dx = e.clientX - (rect.left + rect.width/2);
+    const dy = e.clientY - (rect.top + rect.height/2);
+    eye.style.transform = `translate(${dx * 0.1}px, ${dy * 0.1}px)`;
+  });
+});
+
+// Mobile touch events
+document.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  const touch = e.touches[0];
+  
+  follower.style.left = (touch.clientX - 40) + 'px';
+  follower.style.top = (touch.clientY - 40) + 'px';
+  
+  eyes.forEach(eye=>{
+    const rect = eye.getBoundingClientRect();
+    const dx = touch.clientX - (rect.left + rect.width/2);
+    const dy = touch.clientY - (rect.top + rect.height/2);
+    eye.style.transform = `translate(${dx * 0.1}px, ${dy * 0.1}px)`;
+  });
+}, { passive: false });
+
+// Light flickering effect
+function flickerLight(){
+  const brightness = 0.6 + Math.random()*0.4;
+  document.body.style.background = `rgba(10,10,10,${brightness})`;
+  setTimeout(flickerLight, 100 + Math.random()*200);
+}
+flickerLight();
+
+// Pixel effect
+function drawPixels(){
+  pixelCtx.clearRect(0,0,pixelCanvas.width,pixelCanvas.height);
+  for(let i=0;i<500;i++){
+    const x=Math.random()*pixelCanvas.width;
+    const y=Math.random()*pixelCanvas.height;
+    const size=Math.random()*2+1;
+    const color=`rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},0.5)`;
+    pixelCtx.fillStyle=color;
+    pixelCtx.fillRect(x,y,size,size);
+  }
+  requestAnimationFrame(drawPixels);
+}
+drawPixels();
+
+// Drawing board
+function enableDrawing(){
+  let painting = false;
+  
+  drawCtx.strokeStyle = 'white';
+  drawCtx.lineWidth = 4;
+  drawCtx.lineCap = 'round';
+  drawCtx.lineJoin = 'round';
+  
+  function getCoordinates(e) {
+    if (e.type.includes('touch')) {
+      const touch = e.touches[0];
+      const rect = drawCanvas.getBoundingClientRect();
+      return {
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top
+      };
+    } else {
+      return {
+        x: e.clientX,
+        y: e.clientY
+      };
+    }
+  }
+  
+  function startPainting(e){
+    e.preventDefault();
+    painting = true;
+    const coords = getCoordinates(e);
+    drawCtx.beginPath();
+    drawCtx.moveTo(coords.x, coords.y);
+  }
+  
+  function stopPainting(e){
+    e.preventDefault();
+    painting = false;
+    drawCtx.beginPath();
+  }
+  
+  function draw(e){
+    e.preventDefault();
+    if(!painting) return;
+    
+    const coords = getCoordinates(e);
+    drawCtx.lineTo(coords.x, coords.y);
+    drawCtx.stroke();
+  }
+  
+  // Remove existing event listeners
+  drawCanvas.removeEventListener('mousedown', startPainting);
+  drawCanvas.removeEventListener('mouseup', stopPainting);
+  drawCanvas.removeEventListener('mousemove', draw);
+  drawCanvas.removeEventListener('mouseout', stopPainting);
+  
+  drawCanvas.removeEventListener('touchstart', startPainting);
+  drawCanvas.removeEventListener('touchend', stopPainting);
+  drawCanvas.removeEventListener('touchmove', draw);
+  drawCanvas.removeEventListener('touchcancel', stopPainting);
+  
+  // Add event listeners
+  drawCanvas.addEventListener('mousedown', startPainting);
+  drawCanvas.addEventListener('mouseup', stopPainting);
+  drawCanvas.addEventListener('mousemove', draw);
+  drawCanvas.addEventListener('mouseout', stopPainting);
+  
+  drawCanvas.addEventListener('touchstart', startPainting, { passive: false });
+  drawCanvas.addEventListener('touchend', stopPainting, { passive: false });
+  drawCanvas.addEventListener('touchmove', draw, { passive: false });
+  drawCanvas.addEventListener('touchcancel', stopPainting, { passive: false });
+}
+
+// Mobile button touch events
+document.querySelectorAll('button').forEach(button => {
+  button.addEventListener('touchstart', function(e) {
+    e.stopPropagation();
+  });
+});
+</script>
+</body>
+</html>
+```
